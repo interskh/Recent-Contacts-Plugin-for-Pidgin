@@ -1,0 +1,24 @@
+INSTALL:
+
+autostatus is using CMake build system, so after extract the tarball, go to the directory, then run
+   > cmake .
+   > make install
+
+sometimes you need root privilege to install the plugin.
+
+if you wish to install the plugin other than "/usr/local/", you can use cmake to configure, like this,
+   > cmake -D CMAKE_INSTALL_PREFIX=/usr .
+
+after install the plugin, you may need to manually set up the rules in configuration file. the default configuration file is ./autostatus.config, you can simply copy it to pidgin configuration directory.
+
+the configuration file format is very restricted, so, please follow the following format:
+
+   ${ip address 0}/${netmask 0}
+   ${prompt 0}
+   ${ip address 1}/${netmask 1}
+   ${prompt 1}
+   ${ip address 2}/${netmask 2}
+   ${prompt 2}
+
+there shouldnt be any space/empty line before, after or between.
+
