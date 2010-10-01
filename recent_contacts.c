@@ -46,10 +46,9 @@
 #include <plugin.h>
 #include <version.h>
 #include <debug.h>
-#include <status.h>
-#include <savedstatuses.h>
 #include <prefs.h>
 #include <network.h>
+#include <conversation.h>
 
 /* global preference */
 static const char * const PREF_NONE = "/plugins/core/recent_contacts";
@@ -79,6 +78,20 @@ trace(const char *str, ...)
 	g_free(buf);
 }
 
+/*******************
+ * Signal Handlers *
+ *******************/
+static void rc_at_conversation_created(PurpleConversation *conv)
+{
+  PurpleAccount *acct = purple_conversation_get_account(conv);
+  const char * proto = purple_account_get_protocol_name(acct);
+  const char * proto_id = purple_account_get_protocol_id(acct);
+  const char * my_acct = purple_account_get_username(acct);
+  const char * recv_acct = purple_conversation_get_name(conv);
+
+  trace("Conversation started.. [%s: %s] account: %s to %s", proto_id,
+      proto, my_acct, recv_acct); }
+
 
 /* we're adding this here and assigning it in plugin_load because we need
  * a valid plugin handle for our call to purple_notify_message() in the
@@ -93,6 +106,9 @@ plugin_load (PurplePlugin * plugin)
 
   recent_contacts_plugin = plugin; /* assign this here so we have a
                                       valid handle later */
+	void *conv_handle = purple_conversations_get_handle();
+	purple_signal_connect(conv_handle, "conversation-created", plugin,
+			PURPLE_CALLBACK(rc_at_conversation_created), NULL);
 	return TRUE;
 }
 
