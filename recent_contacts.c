@@ -54,7 +54,9 @@
 static const char * PREF_NONE = "/plugins/core/recent_contacts";
 static const char * GROUP_NAME = "Recent Contacts";
 static const char * NODE_GROUP_KEY = "buddy_orig_group";
-static const int SIZELIMIT = 3;
+static const char * NODE_OFFLINE_KEY = "show_offline";
+static const char * NODE_ORIG_OFFLINE_KEY = "show_offline_orig";
+static const int SIZELIMIT = 10;
 
 void rc_push_contact(PurpleAccount *, const char *);
 void rc_pop_contacts(PurpleGroup *);
@@ -107,11 +109,21 @@ void rc_push_contact(PurpleAccount *acct,
   }
 
   PurpleBlistNode * node = PURPLE_BLIST_NODE(buddy); 
+
+  // back up group info
   PurpleGroup * orig_grp = 	purple_buddy_get_group(buddy);
   purple_blist_node_set_string(node, NODE_GROUP_KEY, orig_grp->name);
+
+  // back up offline info
+  gboolean offline = purple_blist_node_get_bool(node, NODE_OFFLINE_KEY);
+  purple_blist_node_set_bool(node, NODE_ORIG_OFFLINE_KEY, offline);
+  purple_blist_node_set_bool(node, NODE_OFFLINE_KEY, TRUE);
+
+  // Add to Recent Contacts Group
   trace(">>>>>>> Add %s", buddyname);
   purple_blist_add_buddy(buddy, NULL, grp, NULL);
 
+  // Clean up old group if needed
   rc_pop_contacts(grp);
 }
 
@@ -123,12 +135,14 @@ void rc_pop_contacts(PurpleGroup * grp)
   PurpleBlistNode * n = NULL;
   PurpleBuddy * b = NULL;
   int total;
+  gboolean offline;
 
   //XXX group->totalsize is unreliable!!!
 
   for (n=gnode->child, total=0; n!=NULL; total++, n=n->next);
+  trace("Total Group Count %d", total);
 
-  if (total > SIZELIMIT) {
+  while (total > SIZELIMIT) {
 
     n = gnode->child;
 
@@ -140,7 +154,8 @@ void rc_pop_contacts(PurpleGroup * grp)
       b = PURPLE_BUDDY(n);
     }
 
-    const char *name = purple_blist_node_get_string(PURPLE_BLIST_NODE(b), NODE_GROUP_KEY);
+    n = PURPLE_BLIST_NODE(b);
+    const char *name = purple_blist_node_get_string(n, NODE_GROUP_KEY);
     if (!name) {  // if cannot find orig group name, put back to Buddies
       trace("ERROR!!! cannot find original group name"); 
       name = "Buddies"; 
@@ -151,6 +166,9 @@ void rc_pop_contacts(PurpleGroup * grp)
       g = purple_group_new(name);
     }
     trace("<<<<<<< Remove %s", b->name);
+
+    offline = purple_blist_node_get_bool(n, NODE_ORIG_OFFLINE_KEY);
+    purple_blist_node_set_bool(n, NODE_OFFLINE_KEY, offline);
     purple_blist_add_buddy(b, NULL, g, NULL);
 
     total--;
