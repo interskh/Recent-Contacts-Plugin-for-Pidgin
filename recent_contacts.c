@@ -51,7 +51,13 @@
 #include <conversation.h>
 
 /* global preference */
-static const char * const PREF_NONE = "/plugins/core/recent_contacts";
+static const char * PREF_NONE = "/plugins/core/recent_contacts";
+static const char * GROUP_NAME = "Recent Contacts";
+static const char * NODE_GROUP_KEY = "buddy_orig_group";
+static const int SIZELIMIT = 3;
+
+void rc_push_contact(PurpleAccount *, const char *);
+void rc_pop_contacts(PurpleGroup *);
 
 /********************
  * helper functions *
@@ -78,6 +84,80 @@ trace(const char *str, ...)
 	g_free(buf);
 }
 
+void rc_push_contact(PurpleAccount *acct,
+    const char * buddyname)
+{
+  PurpleGroup * grp = purple_find_group(GROUP_NAME);
+  if (!grp) {
+    trace("Group %s Not Found. Create one.", GROUP_NAME);
+    grp = purple_group_new(GROUP_NAME);
+  }
+
+  // if we can find it in 'Recent Contacts', skip
+  if (purple_find_buddy_in_group(acct, buddyname, grp) != NULL) {
+    trace("Buddy %s is already in %s", buddyname, GROUP_NAME);
+    // TODO: put contact at the top of the recent list
+    return;
+  }
+
+  PurpleBuddy * buddy = purple_find_buddy(acct, buddyname);
+  if (!buddy) {
+    trace("Buddy %s Not Found. You SUCK!", buddyname);
+    return;
+  }
+
+  PurpleBlistNode * node = PURPLE_BLIST_NODE(buddy); 
+  PurpleGroup * orig_grp = 	purple_buddy_get_group(buddy);
+  purple_blist_node_set_string(node, NODE_GROUP_KEY, orig_grp->name);
+  trace(">>>>>>> Add %s", buddyname);
+  purple_blist_add_buddy(buddy, NULL, grp, NULL);
+
+  rc_pop_contacts(grp);
+}
+
+void rc_pop_contacts(PurpleGroup * grp)
+{
+  if (!grp) return;
+
+  PurpleBlistNode * gnode = PURPLE_BLIST_NODE(grp);
+  PurpleBlistNode * n = NULL;
+  PurpleBuddy * b = NULL;
+  int total;
+
+  //XXX group->totalsize is unreliable!!!
+
+  for (n=gnode->child, total=0; n!=NULL; total++, n=n->next);
+
+  if (total > SIZELIMIT) {
+
+    n = gnode->child;
+
+    if (PURPLE_BLIST_NODE_IS_CONTACT(n)) {
+      trace("Child Contact : %s", (PURPLE_CONTACT(n)->priority->name));
+      b = PURPLE_CONTACT(n)->priority;
+    } else if (PURPLE_BLIST_NODE_IS_BUDDY(n)) {
+      trace("Child Buddy : %s", (PURPLE_BUDDY(n)->name));
+      b = PURPLE_BUDDY(n);
+    }
+
+    const char *name = purple_blist_node_get_string(PURPLE_BLIST_NODE(b), NODE_GROUP_KEY);
+    if (!name) {  // if cannot find orig group name, put back to Buddies
+      trace("ERROR!!! cannot find original group name"); 
+      name = "Buddies"; 
+    }
+    PurpleGroup * g = purple_find_group(name);
+    if (!g) {
+      trace("Group %s Not Found. Create one.", name);
+      g = purple_group_new(name);
+    }
+    trace("<<<<<<< Remove %s", b->name);
+    purple_blist_add_buddy(b, NULL, g, NULL);
+
+    total--;
+  }
+  
+}
+
 /*******************
  * Signal Handlers *
  *******************/
@@ -90,7 +170,11 @@ static void rc_at_conversation_created(PurpleConversation *conv)
   const char * recv_acct = purple_conversation_get_name(conv);
 
   trace("Conversation started.. [%s: %s] account: %s to %s", proto_id,
-      proto, my_acct, recv_acct); }
+      proto, my_acct, recv_acct); 
+
+  rc_push_contact(acct, recv_acct);
+
+}
 
 
 /* we're adding this here and assigning it in plugin_load because we need
