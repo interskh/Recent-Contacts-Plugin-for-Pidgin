@@ -52,14 +52,28 @@
 
 /* global preference */
 static const char * PREF_NONE = "/plugins/core/recent_contacts";
+static const char * PREF_SIZE = "/plugins/core/recent_contacts/size";
 static const char * GROUP_NAME = "Recent Contacts";
 static const char * NODE_GROUP_KEY = "buddy_orig_group";
 static const char * NODE_OFFLINE_KEY = "show_offline";
 static const char * NODE_ORIG_OFFLINE_KEY = "show_offline_orig";
-static const int SIZELIMIT = 10;
+static const int DEFAULT_SIZE = 10;
+
+int g_size;
 
 void rc_push_contact(PurpleAccount *, const char *);
 void rc_pop_contacts(PurpleGroup *);
+
+PurplePluginPrefFrame* get_plugin_pref_frame(PurplePlugin*);
+static PurplePluginUiInfo plugin_prefs = {
+  get_plugin_pref_frame,
+  0,
+  NULL,
+  NULL,
+  NULL,
+  NULL,
+  NULL
+};
 
 /********************
  * helper functions *
@@ -70,10 +84,10 @@ void rc_pop_contacts(PurpleGroup *);
 void
 trace(const char *str, ...)
 {
-	va_list ap;
-	va_start(ap, str);
-	char *buf = g_strdup_vprintf(str, ap);
-	va_end(ap);
+  va_list ap;
+  va_start(ap, str);
+  char *buf = g_strdup_vprintf(str, ap);
+  va_end(ap);
 
   FILE *log = fopen("/tmp/pidgin_recent_contact.log", "a");
   assert(log);
@@ -82,8 +96,8 @@ trace(const char *str, ...)
   fprintf(log, "%s: %s\n", ctime(&t), buf);
   fclose(log);
 
-	purple_debug_info(recent_contacts_ID, "%s\n", buf);
-	g_free(buf);
+  purple_debug_info(recent_contacts_ID, "%s\n", buf);
+  g_free(buf);
 }
 
 void rc_push_contact(PurpleAccount *acct,
@@ -143,7 +157,7 @@ void rc_pop_contacts(PurpleGroup * grp)
   for (n=gnode->child, total=0; n!=NULL; total++, n=n->next);
   trace("Total Group Count %d", total);
 
-  while (total > SIZELIMIT) {
+  while (total > g_size) {
 
     n = gnode->child;
 
@@ -175,6 +189,16 @@ void rc_pop_contacts(PurpleGroup * grp)
     total--;
   }
   
+}
+
+static void
+pref_size_on_change(const char *name, PurplePrefType type, gconstpointer val,
+			  gpointer user_data)
+{
+  g_size = purple_prefs_get_int(PREF_SIZE);
+  PurpleGroup * grp = purple_find_group(GROUP_NAME);
+  if (!grp) return;
+  rc_pop_contacts(grp);
 }
 
 /*******************
@@ -209,54 +233,72 @@ plugin_load (PurplePlugin * plugin)
 
   recent_contacts_plugin = plugin; /* assign this here so we have a
                                       valid handle later */
-	void *conv_handle = purple_conversations_get_handle();
-	purple_signal_connect(conv_handle, "conversation-created", plugin,
-			PURPLE_CALLBACK(rc_at_conversation_event), NULL);
-	purple_signal_connect(conv_handle, "deleting-conversation", plugin, 
-			PURPLE_CALLBACK(rc_at_conversation_event), NULL);
-	return TRUE;
+  g_size = purple_prefs_get_int(PREF_SIZE);
+  void *handle = purple_prefs_get_handle();
+  purple_prefs_connect_callback(handle, PREF_SIZE, pref_size_on_change, NULL);
+  void *conv_handle = purple_conversations_get_handle();
+  purple_signal_connect(conv_handle, "conversation-created", plugin,
+  		PURPLE_CALLBACK(rc_at_conversation_event), NULL);
+  purple_signal_connect(conv_handle, "deleting-conversation", plugin, 
+  		PURPLE_CALLBACK(rc_at_conversation_event), NULL);
+  return TRUE;
+}
+
+PurplePluginPrefFrame *get_plugin_pref_frame(PurplePlugin *plugin) {
+  PurplePluginPrefFrame *frame;
+  PurplePluginPref *pref;
+
+  frame = purple_plugin_pref_frame_new();
+
+  pref = purple_plugin_pref_new_with_name_and_label(PREF_SIZE, "Size of Recent Contacts Group:");
+  purple_plugin_pref_set_bounds(pref, 0, 100);
+  purple_plugin_pref_frame_add(frame, pref);
+
+  return frame;
 }
 
 /* For specific notes on the meanings of each of these members, consult the C Plugin Howto
  * on the website. */
 static PurplePluginInfo info = {
-	PURPLE_PLUGIN_MAGIC,
-	PURPLE_MAJOR_VERSION,
-	PURPLE_MINOR_VERSION,
-	PURPLE_PLUGIN_STANDARD,
-	NULL,
-	0,
-	NULL,
-	PURPLE_PRIORITY_DEFAULT,
+  PURPLE_PLUGIN_MAGIC,
+  PURPLE_MAJOR_VERSION,
+  PURPLE_MINOR_VERSION,
+  PURPLE_PLUGIN_STANDARD,
+  NULL,
+  0,
+  NULL,
+  PURPLE_PRIORITY_DEFAULT,
 
   recent_contacts_ID,
-	recent_contacts_NAME,
-	recent_contacts_VERSION, 
+  recent_contacts_NAME,
+  recent_contacts_VERSION, 
 
-	"Recent Contacts Plugin",
-	"Have a list of your recent Contacts",
-	"Kyle Sun <interskh@gmail.com>", /* correct author */
-	"http://code.google.com/p/pidgin-recent_contacts/",
+  "Recent Contacts Plugin",
+  "Have a list of your recent Contacts",
+  "Kyle Sun <interskh@gmail.com>", /* correct author */
+  "http://code.google.com/p/pidgin-recent_contacts/",
 
 
-	plugin_load,
-	NULL,
-	NULL,
-
-	NULL,
-	NULL,
-	NULL,
+  plugin_load,
+  NULL,
   NULL,
 
-	NULL,
-	NULL,
-	NULL,
-	NULL
+  NULL,
+  NULL,
+	&plugin_prefs,
+  NULL,
+
+  NULL,
+  NULL,
+  NULL,
+  NULL
 };
 
 static void
 init_plugin (PurplePlugin * plugin)
 {
+	purple_prefs_add_none(PREF_NONE);
+	purple_prefs_add_int(PREF_SIZE, DEFAULT_SIZE);
 }
 
-PURPLE_INIT_PLUGIN (hello_world, init_plugin, info)
+PURPLE_INIT_PLUGIN(recent_contacts, init_plugin, info)
