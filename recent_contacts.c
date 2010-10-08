@@ -95,14 +95,15 @@ void rc_push_contact(PurpleAccount *acct,
     grp = purple_group_new(GROUP_NAME);
   }
 
+  PurpleBuddy * buddy;
   // if we can find it in 'Recent Contacts', skip
-  if (purple_find_buddy_in_group(acct, buddyname, grp) != NULL) {
+  if ((buddy = purple_find_buddy_in_group(acct, buddyname, grp)) != NULL) {
     trace("Buddy %s is already in %s", buddyname, GROUP_NAME);
-    // TODO: put contact at the top of the recent list
+    purple_blist_add_buddy(buddy, NULL, grp, NULL);
     return;
   }
 
-  PurpleBuddy * buddy = purple_find_buddy(acct, buddyname);
+  buddy = purple_find_buddy(acct, buddyname);
   if (!buddy) {
     trace("Buddy %s Not Found. You SUCK!", buddyname);
     return;
