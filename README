@@ -1,24 +1,24 @@
-INSTALL:
+== INSTALL ==
 
-autostatus is using CMake build system, so after extract the tarball, go to the directory, then run
-   > cmake .
-   > make install
+recent_contacts is using CMake build system, so after extracting the
+tarball, go to the directory, then run
+  > cmake .  make install
 
 sometimes you need root privilege to install the plugin.
 
-if you wish to install the plugin other than "/usr/local/", you can use cmake to configure, like this,
-   > cmake -D CMAKE_INSTALL_PREFIX=/usr .
+if you wish to install the plugin other than "/usr/local/", you can
+use cmake to configure, like this,
+  > cmake -D CMAKE_INSTALL_PREFIX=/usr .  make install
 
-after install the plugin, you may need to manually set up the rules in configuration file. the default configuration file is ./autostatus.config, you can simply copy it to pidgin configuration directory.
+or you can manually install
+  > cmake .
+  > make
+  > cp librecent_contacts.so ~/.purple/plugins
 
-the configuration file format is very restricted, so, please follow the following format:
 
-   ${ip address 0}/${netmask 0}
-   ${prompt 0}
-   ${ip address 1}/${netmask 1}
-   ${prompt 1}
-   ${ip address 2}/${netmask 2}
-   ${prompt 2}
-
-there shouldnt be any space/empty line before, after or between.
-
+== NOTES ==
+The implementation of Recent Contacts is by using a group called
+"Recent Contact". When a new conversation starts or a conversation
+terminates, it pushes the contact to the recent contact group and set
+it to be "show when offline". If the buddy is already in thte recent
+contact, we simply put it to the top of list.

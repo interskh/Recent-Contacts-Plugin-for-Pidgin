@@ -28,7 +28,7 @@
 
 #define recent_contacts_ID   "core-recent_contacts"
 #define recent_contacts_NAME	"Recent Contact"
-#define recent_contacts_VERSION	"0.01"
+#define recent_contacts_VERSION	"0.9"
 
 #include <glib.h>
 #include <assert.h>
@@ -276,7 +276,7 @@ static PurplePluginInfo info = {
   "Recent Contacts Plugin",
   "Have a list of your recent Contacts",
   "Kyle Sun <interskh@gmail.com>", /* correct author */
-  "http://code.google.com/p/pidgin-recent_contacts/",
+  "http://github.com/interskh/Recent-Contacts-Plugin-for-Pidgin",
 
 
   plugin_load,
