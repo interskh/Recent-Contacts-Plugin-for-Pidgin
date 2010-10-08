@@ -180,7 +180,7 @@ void rc_pop_contacts(PurpleGroup * grp)
 /*******************
  * Signal Handlers *
  *******************/
-static void rc_at_conversation_created(PurpleConversation *conv)
+static void rc_at_conversation_event(PurpleConversation *conv)
 {
   PurpleAccount *acct = purple_conversation_get_account(conv);
   const char * proto = purple_account_get_protocol_name(acct);
@@ -188,7 +188,7 @@ static void rc_at_conversation_created(PurpleConversation *conv)
   const char * my_acct = purple_account_get_username(acct);
   const char * recv_acct = purple_conversation_get_name(conv);
 
-  trace("Conversation started.. [%s: %s] account: %s to %s", proto_id,
+  trace("Conversation event.. [%s: %s] account: %s to %s", proto_id,
       proto, my_acct, recv_acct); 
 
   rc_push_contact(acct, recv_acct);
@@ -211,7 +211,9 @@ plugin_load (PurplePlugin * plugin)
                                       valid handle later */
 	void *conv_handle = purple_conversations_get_handle();
 	purple_signal_connect(conv_handle, "conversation-created", plugin,
-			PURPLE_CALLBACK(rc_at_conversation_created), NULL);
+			PURPLE_CALLBACK(rc_at_conversation_event), NULL);
+	purple_signal_connect(conv_handle, "deleting-conversation", plugin, 
+			PURPLE_CALLBACK(rc_at_conversation_event), NULL);
 	return TRUE;
 }
 
