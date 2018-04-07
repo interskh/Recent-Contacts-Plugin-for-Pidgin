@@ -89,13 +89,6 @@ trace(const char *str, ...)
   char *buf = g_strdup_vprintf(str, ap);
   va_end(ap);
 
-  FILE *log = fopen("/tmp/pidgin_recent_contact.log", "a");
-  assert(log);
-  time_t t;
-  time(&t);
-  fprintf(log, "%s: %s\n", ctime(&t), buf);
-  fclose(log);
-
   purple_debug_info(recent_contacts_ID, "%s\n", buf);
   g_free(buf);
 }

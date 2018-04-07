@@ -1,6 +1,6 @@
 == INSTALL ==
 
-recent_contacts is using CMake build system, so after extracting the
+On Linux, recent_contacts is using CMake build system, so after extracting the
 tarball, go to the directory, then run
   > cmake .  make install
 
@@ -15,6 +15,16 @@ or you can manually install
   > make
   > cp librecent_contacts.so ~/.purple/plugins
 
+
+In order to build the plugin for Windows an already-compiled source tree of
+Pidgin is required. Please see the Pidgin for Windows Build Instructions
+(https://developer.pidgin.im/wiki/BuildingWinPidgin) for details.
+
+After that you need to create a file named "local.mak" that points to the
+Pidgin source tree, e.g.:
+  > PIDGIN_TREE_TOP=$(PLUGIN_TOP)/../../pidgin-2.10.11
+Now you can build the plugin:
+  > make -f Makefile.mingw
 
 == NOTES ==
 The implementation of Recent Contacts is by using a group called
